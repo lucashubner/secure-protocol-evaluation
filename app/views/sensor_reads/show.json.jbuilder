@@ -1,0 +1,1 @@
+json.partial! "sensor_reads/sensor_read", sensor_read: @sensor_read

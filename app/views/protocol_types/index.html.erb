@@ -1,0 +1,27 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Protocol Types</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Protocolname</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @protocol_types.each do |protocol_type| %>
+      <tr>
+        <td><%= protocol_type.protocolName %></td>
+        <td><%= link_to 'Show', protocol_type %></td>
+        <td><%= link_to 'Edit', edit_protocol_type_path(protocol_type) %></td>
+        <td><%= link_to 'Destroy', protocol_type, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Protocol Type', new_protocol_type_path %>

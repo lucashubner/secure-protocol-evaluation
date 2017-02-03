@@ -1,0 +1,14 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Value:</strong>
+  <%= @sensor_read.value %>
+</p>
+
+<p>
+  <strong>Sensor type:</strong>
+  <%= @sensor_read.sensor_type %>
+</p>
+
+<%= link_to 'Edit', edit_sensor_read_path(@sensor_read) %> |
+<%= link_to 'Back', sensor_reads_path %>

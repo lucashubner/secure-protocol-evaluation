@@ -1,0 +1,29 @@
+<p id="notice"><%= notice %></p>
+
+<h1>Sensor Reads</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Value</th>
+      <th>Sensor type</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @sensor_reads.each do |sensor_read| %>
+      <tr>
+        <td><%= sensor_read.value %></td>
+        <td><%= sensor_read.sensor_type.type_name %></td>
+        <td><%= link_to 'Show', sensor_read %></td>
+        <td><%= link_to 'Edit', edit_sensor_read_path(sensor_read) %></td>
+        <td><%= link_to 'Destroy', sensor_read, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Sensor Read', new_sensor_read_path %>

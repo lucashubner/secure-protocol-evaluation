@@ -1,0 +1,2 @@
+class ProtocolType < ApplicationRecord
+end

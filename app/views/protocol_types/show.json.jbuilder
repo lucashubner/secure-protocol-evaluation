@@ -1,0 +1,1 @@
+json.partial! "protocol_types/protocol_type", protocol_type: @protocol_type

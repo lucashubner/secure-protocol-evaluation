@@ -1,0 +1,1 @@
+json.array! @protocol_types, partial: 'protocol_types/protocol_type', as: :protocol_type
