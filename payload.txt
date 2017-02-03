@@ -1,0 +1,1 @@
+{"value":32.6,"sensor_type_id":3}
