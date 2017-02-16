@@ -1,10 +1,14 @@
 class StatisticsController < ApplicationController
   before_action :set_statistic, only: [:show, :edit, :update, :destroy]
+  skip_before_action :verify_authenticity_token
+  http_basic_authenticate_with name: "sensors", password: "123456", only: [:new, :edit, :destroy, :create]
 
   # GET /statistics
   # GET /statistics.json
   def index
-    @statistics = Statistic.all
+    @statistics = Statistic.all()
+    
+    #@statistics = Statistic.paginate(:page => params[:page])
   end
 
   # GET /statistics/1

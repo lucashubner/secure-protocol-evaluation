@@ -2,11 +2,12 @@ require 'json'
 class SensorReadsController < ApplicationController
   before_action :set_sensor_read, only: [:show, :edit, :update, :destroy]
   skip_before_action :verify_authenticity_token
+  http_basic_authenticate_with name: "sensors", password: "123456", only: [:new, :edit, :destroy, :create]
 
 # GET /sensor_reads
   # GET /sensor_reads.json
   def index
-    @sensor_reads = SensorRead.all
+    @sensor_reads = SensorRead.paginate(:page => params[:page])
   end
 
   # GET /sensor_reads/1
@@ -23,6 +24,17 @@ class SensorReadsController < ApplicationController
   def edit
   end
 
+  # Create ignoring http_basic_auth
+  def create_coap
+    @payload_json = JSON.parse(self.env["rack.input"].as_json["input"][0].to_param)
+    @sensor_read = SensorRead.new(@payload_json)
+    if @sensor_read.save
+      render :show, status: :created, location: @sensor_read   
+    else
+        render json: @sensor_read.errors, satus: :unprocessable_entity  
+    end
+  end
+	
   # POST /sensor_reads
   # POST /sensor_reads.json
   def create
