@@ -1,8 +1,14 @@
+#ifndef ESP_DEFINITIONS_H
+#define ESP_DEFINITIONS_H
+
 #define wifi_ssid "Adercleison"
 #define wifi_password "dionecleide2015"
 // Generate fingerprint with \/
 // openssl x509 -fingerprint -in  mqttserver.crt 
 const char* fingerprint = "6a 2b 89 93 fe da 57 a1 a7 fd 7d b5 8b 49 b9 57 22 f3 70 30";
+
+WiFiClientSecure espClientSecure;
+WiFiClient espClient;
 
 // Define pinos do ESP8266 - NodeMCU
 #define D0 16
@@ -39,10 +45,12 @@ void setup_wifi() {
 
 //------------------------------------------------------------------------------------//
 
-bool verifyFingerprint(WiFiClientSecure wifiClient, int port, String host) {
+bool verifyFingerprint(WiFiClientSecure wifiClient, String host, int port) {
   // Use WiFiClientSecure class to create TLS connection
   if (!wifiClient.connect(host.c_str(), port)) {
     return false;
   }
   return wifiClient.verify(fingerprint, host.c_str());
 }
+
+#endif 

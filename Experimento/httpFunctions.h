@@ -1,37 +1,46 @@
+#ifndef HTTP_FUNCTIONS_H
+#define HTTP_FUNCTIONS_H
+
 #include<ESP8266HTTPClient.h>
 #define httpPort 3000
 #define httpPortSsl 3001
 
+String www_user = "sensors";
+String www_pass = "123456";
+
+#define HTTP_PROTOCOL   5
+#define HTTPS_PROTOCOL  6
+#define MQTT_PROTOCOL   1
+#define MQTTS_PROTOCOL  2
+#define COAP_PROTOCOL   3
+
 //------------------------------------------------------------------------------------//
-void postResult(WiFiClient client, int value, int protocolType, String host, int port){
-    String request = "";
-    String json = "";
-    json  = "{\r\n\t\"value\" : \"" + String(value)  + "\",\r\n";
-    json += "\t\"protocol_type_id\" : \"" + String(protocolType) +  "\"\r\n}\r\n";
-  
-    request += "POST /statistics"; 
-    request += " HTTP/1.1\r\n";
-    request += "Host: "+ host + ":" + String(port)+"\r\n";
-    request += "User-Agent: Arduino/1.0\r\n";
-    request += "Content-Type: application/json\r\n";
-    request += "Content-Length: "+ String(json.length())+"\r\n";
-    request += "Connection: close\r\n\r\n";
-    request+=json;
-    if(client.connect(host.c_str(),3000)){   
-      //Se o arduino conseguiu se conectar no server, então começa a pegar os dados
-      if(client.connected()){
-         client.println(request);
-      }
-    }
+int postResult(int value, int protocolType, String host, int port){
+    HTTPClient http;
+    int httpCode;
+    http.begin("http://"+ host + ":" + String(port) +"/statistics");
+    
+    http.setAuthorization(www_user.c_str(), www_pass.c_str());
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("Host", host + ":" + String(port));
+    
+    httpCode = http.POST("{\r\n\"value\" : \"" + String(value) + "\",\r\n" + "\"protocol_type_id\" : \"" + String(protocolType) +  "\"\r\n}\r\n");
+    
+    String payload = http.getString();
+    http.end();
+
+    return httpCode;
 }
 //------------------------------------------------------------------------------------//
-String postOnWebService(WiFiClient client, TSensor sensor, String host, int port, bool secure = false){
+int postOnWebService(WiFiClient client, TSensor sensor, String host, int port, bool secure = false){
   HTTPClient http;
-  if(secure)
-    http.begin("https://"+ host +":" + String(port) +"/sensor_reads", "6a 2b 89 93 fe da 57 a1 a7 fd 7d b5 8b 49 b9 57 22 f3 70 30");
-   else
+  if(secure){
+    http.begin("https://"+host+":" + String(port) +"/sensor_reads", "6a 2b 89 93 fe da 57 a1 a7 fd 7d b5 8b 49 b9 57 22 f3 70 30");
+  }
+  else
     http.begin("http://"+ host + ":" + String(port) +"/sensor_reads");
- 
+    
+  http.setAuthorization(www_user.c_str(), www_pass.c_str());
   http.addHeader("Content-Type", "application/json");
   http.addHeader("Host", host + ":" + String(port));
   
@@ -40,7 +49,11 @@ String postOnWebService(WiFiClient client, TSensor sensor, String host, int port
 
   int httpCode = http.POST(json);
   String payload = http.getString();
+  
+  
   http.end();
 
-  return payload;
+  return httpCode;
 }
+
+#endif

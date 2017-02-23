@@ -2,7 +2,6 @@
 #include <DHT_U.h>
 #include <Adafruit_Sensor.h>
 #include <ESP8266WiFi.h>
-
 #include <Adafruit_MQTT.h>
 #include <Adafruit_MQTT_Client.h>
 
@@ -14,28 +13,17 @@
 #include "httpFunctions.h"
 #include "mqttFunctions.h"
 
-#define HOST "cacc.unioeste-foz.br"
-
 #define DHTPIN 13     // what digital pin we're connected to
 #define DHTTYPE DHT22   // DHT 22
 
+String host = "cacc.unioeste-foz.br";
+
+int httpReturnCode;
+bool mqttPublished;
 TSensor temperature;
 TSensor humidity;
-  
-WiFiClientSecure espClientSecure;
-WiFiClient espClient;
 
-coapClient coap;
 DHT dht(DHTPIN, DHTTYPE);
-
-Adafruit_MQTT_Client mqtt(&espClient, mqtt_server, mqttPort, mqtt_user, mqtt_password);
-Adafruit_MQTT_Client mqttSecure(&espClientSecure, mqtt_server, mqttPortSsl, mqtt_user, mqtt_password);
-
-Adafruit_MQTT_Publish temperatureTopic = Adafruit_MQTT_Publish(&mqtt, temperature_topic);
-Adafruit_MQTT_Publish humidityTopic = Adafruit_MQTT_Publish(&mqtt, humidity_topic);
-
-Adafruit_MQTT_Publish temperatureTopicSec = Adafruit_MQTT_Publish(&mqttSecure, temperature_topic);
-Adafruit_MQTT_Publish humidityTopicSec = Adafruit_MQTT_Publish(&mqttSecure, humidity_topic);
 
 unsigned long begin, end;
 
@@ -52,12 +40,12 @@ void setup() {
   temperature.sensor_type_id = 3;
   humidity.sensor_type_id = 2;
   
-  Serial.println("-------------------------------------------------------------------------------------------------------------------------------");
-  Serial.println("|\t   HTTP   \t|\t HTTP SSL \t|\t   MQTT   \t|\t MQTT SSL \t|\t COAP NoSec \t|");
+  Serial.println("-------------------------------------------------------------------------------------------------------------------------------------------------------");
+  Serial.println("|\t   HTTP   \t\t|\t HTTP SSL \t\t|\t   MQTT   \t\t|\t MQTT SSL \t\t|\t COAP NoSec \t|");
 }
 
 void loop() {
-
+  delay(1000);
   humidity.value = dht.readHumidity();
   temperature.value = dht.readTemperature();
 
@@ -72,34 +60,62 @@ void loop() {
 //--------------------------------------------------------------------------------------------//  
   // HTTP PROTOCOL WITHOUT SSL
   begin = micros();
-  postOnWebService(espClientSecure,temperature,HOST, httpPort,false);
+  httpReturnCode = postOnWebService(espClientSecure,temperature,host, httpPort, false);
   end = micros();
-  //TODO POST RESULT CARAI
-  Serial.print(end - begin);
+  if(httpReturnCode == 200 || httpReturnCode == 302){
+    postResult(end-begin, HTTP_PROTOCOL, host, 3000);
+    Serial.print(end - begin);
+  }  
+  else{
+    Serial.print("Error:");
+    Serial.print(httpReturnCode);
+  }
   Serial.print(" | ");
   begin = micros();
-  postOnWebService(espClientSecure,humidity,HOST, httpPort,false);
+  httpReturnCode = postOnWebService(espClientSecure,humidity,host, httpPort,false);
   end = micros();
+  if(httpReturnCode == 200 || httpReturnCode == 302){
+    //postResult(end-begin, HTTP_PROTOCOL, host, 3000);
+    Serial.print(end - begin);
+  }  
+  else{
+    Serial.print("Error:");
+    Serial.print(httpReturnCode);
+  }
   delay(500);
-  Serial.print(end - begin);
   Serial.print("\t|\t");
 
-  
 //--------------------------------------------------------------------------------------------//
   // HTTPS PROTOCOL
   begin = micros();
-  postOnWebService(espClientSecure, temperature, HOST, httpPortSsl, true);
-  end = micros();
-  Serial.print(end - begin);
+  httpReturnCode = postOnWebService(espClientSecure, temperature, host, httpPortSsl, true);
+  end  = micros();
+  if(httpReturnCode == 200 || httpReturnCode == 302){
+      Serial.print(end - begin);
+    postResult(end-begin, HTTPS_PROTOCOL, host, 3000);
+  }
+    else{
+    Serial.print("Error:");
+    Serial.print(httpReturnCode);
+  }
+
   Serial.print(" | ");
   
   begin = micros();
-  postOnWebService(espClientSecure,humidity,HOST, httpPortSsl,true);
+  httpReturnCode = postOnWebService(espClientSecure,humidity,host, httpPortSsl,true);
   end = micros();
-  Serial.print(end - begin);
+  if(httpReturnCode == 200 || httpReturnCode == 302){
+    //postResult(end-begin, HTTPS_PROTOCOL, host, 3000);
+    Serial.print(end - begin);
+  }
+  else{
+    Serial.print("Error:");
+    Serial.print(httpReturnCode);
+  }
+  
   delay(500);
   
-  Serial.print("\t|\t");
+  Serial.print(" \t\t|\t");
 //--------------------------------------------------------------------------------------------//  
   // MQTT WITHOUT SSL
   if(!mqtt.connected()){
@@ -107,18 +123,27 @@ void loop() {
   }
   //Serial.println("mqtt no ssl");
   begin = micros();
-  humidityTopic.publish(humidity.value);
+  mqttPublished = humidityTopic.publish(humidity.value);
   end = micros();
+  if(mqttPublished){
+    //postResult(end-begin, MQTT_PROTOCOL, host, 3000);
+  }
   Serial.print(end - begin);
   Serial.print(" | ");
   
   begin = micros();
-  temperatureTopic.publish(temperature.value);
+  mqttPublished = temperatureTopic.publish(temperature.value);
   end = micros();
+  if(mqttPublished){
+    postResult(end-begin, MQTT_PROTOCOL, host, 3000);
+    Serial.print(end - begin);
+  }
+  else{
+    Serial.print("Timeout?");
+  }
   delay(500);
   
-  Serial.print(end - begin);
-  Serial.print("\t|\t");
+  Serial.print(" \t\t|\t");
 //--------------------------------------------------------------------------------------------//  
   // MQTT WITH SSL
   if(!mqttSecure.connected()){
@@ -126,9 +151,12 @@ void loop() {
   }
   //Serial.println("mqtt ssl");
   begin = micros();
-  if(verifyFingerprint(espClientSecure, mqttPortSsl, HOST)){
-    humidityTopic.publish(humidity.value);
+  if(verifyFingerprint(espClientSecure, host, mqttPortSsl)){
+    mqttPublished = humidityTopic.publish(humidity.value);
     end = micros();
+    if(mqttPublished){
+      //postResult(end-begin, MQTTS_PROTOCOL, host, 3000);
+    }
     Serial.print(end - begin);
     Serial.print(" | ");
   }
@@ -136,10 +164,16 @@ void loop() {
     Serial.print("ERROR");
   }
   begin = micros();
-  if(verifyFingerprint(espClientSecure, mqttPortSsl, HOST)){
-    temperatureTopic.publish(temperature.value);
+  if(verifyFingerprint(espClientSecure, host, mqttPortSsl)){
+    mqttPublished = temperatureTopic.publish(temperature.value);
     end = micros();
-    Serial.print(end - begin);
+    if(mqttPublished){
+      postResult(end-begin, MQTTS_PROTOCOL, host, 3000);
+      Serial.print(end - begin);
+    }
+    else{
+      Serial.print("Timeout?");
+    }
   }
   else{
     Serial.print("ERROR");
@@ -147,7 +181,7 @@ void loop() {
 
   delay(500);
   
-  Serial.print("\t|\t");
+  Serial.print(" \t\t|\t");
 //--------------------------------------------------------------------------------------------//  
   // COAP 
   // COAP NOSEC  
@@ -159,21 +193,36 @@ void loop() {
   state = coap.loop();
   end = micros();
   if(!state){
+    coapMessagesSent++;
+    coapErrors++;
     Serial.print("ERROR");
   }
   else{
+    coapMessagesSent++;
+    postResult(end-begin, COAP_PROTOCOL, host, 3000);
     Serial.print(end - begin);
+    
   }
-
+  Serial.print(" | ");
   begin = micros();
   msgid = coap.post(ip, coapPort,"sensor_reads",(char*)hJson.c_str(),hJson.length());
   state = coap.loop();
   end = micros();
-  if(!state){
+  if(!state){    
+    coapMessagesSent++;
+    coapErrors++;
     Serial.print("ERROR");
   }
   else{
+    coapMessagesSent++;
+    //postResult(end-begin, COAP_PROTOCOL, host, 3000);
     Serial.print(end - begin);
   }
-  Serial.println("\t|");
+  Serial.print("\t|");
+  Serial.print("Tentativas:"); 
+  Serial.print(coapMessagesSent);
+  Serial.print("  Erros:"); 
+  Serial.print(coapErrors); 
+  Serial.println("tentativas = msgs enviadas com sucesso + erros");
+
 }

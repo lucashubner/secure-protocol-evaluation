@@ -5,15 +5,17 @@ IPAddress ip(179,106,223,24);
 #define coapPortCert 3102
 #define coapPortPreShared 3103
 #define coapPortRawPub 3104
-
-long long errors = 0;
-long long messagesSend = 0;
+long coapErrors = 0;
+long coapMessagesSent = 0;
 
 String tJson = "";
 String hJson = "";
 
 bool state = true;
 int msgid;
+
+coapClient coap;
+
 //------------------------------------------------------------------------------------//
 void sensorToJson(TSensor * sensor, String * json){
   *json = "{ \"value\":\""+ String(sensor->value) +"\", \"sensor_type_id\": \""+ sensor->sensor_type_id+ "\"}";
